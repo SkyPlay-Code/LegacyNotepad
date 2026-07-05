@@ -1,13 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "di5Dtv5xbcU=",
+  "dgSpecHash": "0/z5DPhV4B0=",
   "success": true,
-  "projectFilePath": "C:\\Users\\padma\\Desktop\\Notepad\\Notepad.csproj",
+  "projectFilePath": "C:\\Users\\padma\\Documents\\Development\\Notepad\\Notepad.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\padma\\.nuget\\packages\\microsoft.net.illink.tasks\\9.0.17\\microsoft.net.illink.tasks.9.0.17.nupkg.sha512",
-    "C:\\Users\\padma\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\9.0.17\\microsoft.netcore.app.runtime.win-x64.9.0.17.nupkg.sha512",
-    "C:\\Users\\padma\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\9.0.17\\microsoft.windowsdesktop.app.runtime.win-x64.9.0.17.nupkg.sha512",
-    "C:\\Users\\padma\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\9.0.17\\microsoft.aspnetcore.app.runtime.win-x64.9.0.17.nupkg.sha512",
     "C:\\Users\\padma\\.nuget\\packages\\microsoft.netcore.app.crossgen2.win-x64\\9.0.17\\microsoft.netcore.app.crossgen2.win-x64.9.0.17.nupkg.sha512"
   ],
   "logs": []

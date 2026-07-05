@@ -10,7 +10,7 @@ public enum ThemeMode { System, Light, Dark }
 
 public partial class Form1 : Form
 {
-    private TabControl tabControl;
+    private DarkTabControl tabControl; // Uses the custom DarkTabControl subclass
     private MenuStrip menuStrip;
     private StatusStrip statusStrip;
 
@@ -59,6 +59,11 @@ public partial class Form1 : Form
         InitializeEditMenu();
         InitializeViewMenu();
 
+        // FIX 1: Register the top-level menus to the MenuStrip (This was missing)
+        menuStrip.Items.Add(fileMenu);
+        menuStrip.Items.Add(editMenu);
+        menuStrip.Items.Add(viewMenu);
+
         // Footer initialization
         statusStrip = new StatusStrip();
         lblPosition = new ToolStripStatusLabel("Ln 1, Col 1");
@@ -78,12 +83,12 @@ public partial class Form1 : Form
         statusStrip.Items.Add(new ToolStripStatusLabel("  |  ") { Enabled = false });
         statusStrip.Items.Add(lblEncoding);
 
-        // Fixed tab constraints
-        tabControl = new TabControl
+        // Fixed tab constraints with adjusted heights for proper text scaling
+        tabControl = new DarkTabControl
         {
             Dock = DockStyle.Fill,
             DrawMode = TabDrawMode.OwnerDrawFixed,
-            ItemSize = new Size(125, 26),
+            ItemSize = new Size(130, 30), // Height/width configured for DPI and alignment
             SizeMode = TabSizeMode.Fixed
         };
         tabControl.DrawItem += TabControl_DrawItem;
@@ -103,6 +108,10 @@ public partial class Form1 : Form
         this.Controls.Add(statusStrip);
         this.Controls.Add(menuStrip);
         this.MainMenuStrip = menuStrip;
+
+        // FIX 2: Bring the fill-docked control to the front of the Z-order so it docks last,
+        // correctly filling only the remaining space after top/bottom-docked controls are positioned.
+        tabControl.BringToFront();
 
         RefreshRecentFilesMenu();
         AddNewTab();
@@ -134,7 +143,8 @@ public partial class Form1 : Form
         string tabText = tabPage.Text;
         using (Font font = e.State == DrawItemState.Selected ? new Font(this.Font, FontStyle.Bold) : this.Font)
         {
-            Rectangle textRect = new Rectangle(tabRect.X + 6, tabRect.Y + 4, tabRect.Width - 24, tabRect.Height - 8);
+            // Set 8px left margin and reserve 28px on the right for the close button
+            Rectangle textRect = new Rectangle(tabRect.X + 8, tabRect.Y + 3, tabRect.Width - 28, tabRect.Height - 6);
             TextRenderer.DrawText(e.Graphics, tabText, font, textRect, textColor, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
         }
 
@@ -147,7 +157,11 @@ public partial class Form1 : Form
 
     private Rectangle GetCloseButtonRect(Rectangle tabRect)
     {
-        return new Rectangle(tabRect.Right - 16, tabRect.Y + 4, 12, 12);
+        // Centers a 14x14 close button box vertically, staying 6px from the right edge
+        int size = 14;
+        int x = tabRect.Right - size - 6;
+        int y = tabRect.Y + (tabRect.Height - size) / 2;
+        return new Rectangle(x, y, size, size);
     }
 
     private void TabControl_MouseDown(object? sender, MouseEventArgs e)
@@ -268,8 +282,8 @@ public partial class Form1 : Form
             item.ForeColor = menuFg;
         }
 
-        // Apply dark renderer or native default professional renderer
-        menuStrip.Renderer = isDark ? new ToolStripProfessionalRenderer(new DarkColorTable()) : null;
+        // Apply custom dark renderer or fallback to the native system renderer
+        menuStrip.Renderer = isDark ? new DarkToolStripRenderer() : null;
 
         tabControl.BackColor = formBg;
         foreach (NotepadTab tab in tabControl.TabPages)
@@ -304,7 +318,9 @@ public partial class Form1 : Form
             lblLineEndings.Text = "Windows (CRLF)";
         else if (content.Contains("\n"))
             lblLineEndings.Text = "Unix (LF)";
-        else
+        else if (content.Contains("\r"))
             lblLineEndings.Text = "Macintosh (CR)";
+        else
+            lblLineEndings.Text = "Windows (CRLF)"; // Default fallback for newly initialized empty files
     }
 }

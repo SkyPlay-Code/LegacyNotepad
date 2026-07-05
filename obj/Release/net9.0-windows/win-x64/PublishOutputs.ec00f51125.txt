@@ -1,0 +1,2 @@
+C:\Users\padma\Documents\Development\Notepad\bin\Release\net9.0-windows\win-x64\publish\Notepad.pdb
+C:\Users\padma\Documents\Development\Notepad\bin\Release\net9.0-windows\win-x64\publish\Notepad.exe

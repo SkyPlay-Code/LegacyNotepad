@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\padma\\Desktop\\Notepad\\Notepad.csproj": {}
+    "C:\\Users\\padma\\Documents\\Development\\Notepad\\Notepad.csproj": {}
   },
   "projects": {
-    "C:\\Users\\padma\\Desktop\\Notepad\\Notepad.csproj": {
+    "C:\\Users\\padma\\Documents\\Development\\Notepad\\Notepad.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\padma\\Desktop\\Notepad\\Notepad.csproj",
+        "projectUniqueName": "C:\\Users\\padma\\Documents\\Development\\Notepad\\Notepad.csproj",
         "projectName": "Notepad",
-        "projectPath": "C:\\Users\\padma\\Desktop\\Notepad\\Notepad.csproj",
+        "projectPath": "C:\\Users\\padma\\Documents\\Development\\Notepad\\Notepad.csproj",
         "packagesPath": "C:\\Users\\padma\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\padma\\Desktop\\Notepad\\obj\\",
+        "outputPath": "C:\\Users\\padma\\Documents\\Development\\Notepad\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\padma\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -64,19 +64,7 @@
           "warn": true,
           "downloadDependencies": [
             {
-              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
-              "version": "[9.0.17, 9.0.17]"
-            },
-            {
               "name": "Microsoft.NETCore.App.Crossgen2.win-x64",
-              "version": "[9.0.17, 9.0.17]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Runtime.win-x64",
-              "version": "[9.0.17, 9.0.17]"
-            },
-            {
-              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
               "version": "[9.0.17, 9.0.17]"
             }
           ],
@@ -89,11 +77,6 @@
             }
           },
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.315/PortableRuntimeIdentifierGraph.json"
-        }
-      },
-      "runtimes": {
-        "win-x64": {
-          "#import": []
         }
       }
     }
