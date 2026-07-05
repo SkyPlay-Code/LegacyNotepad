@@ -12,3 +12,4 @@ C:\Users\padma\Desktop\Notepad\obj\Debug\net9.0-windows\refint\Notepad.dll
 C:\Users\padma\Desktop\Notepad\obj\Debug\net9.0-windows\Notepad.pdb
 C:\Users\padma\Desktop\Notepad\obj\Debug\net9.0-windows\Notepad.genruntimeconfig.cache
 C:\Users\padma\Desktop\Notepad\obj\Debug\net9.0-windows\ref\Notepad.dll
+C:\Users\padma\Desktop\Notepad\obj\Debug\net9.0-windows\Notepad.sourcelink.json
