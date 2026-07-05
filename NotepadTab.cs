@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Drawing;
 using System.Windows.Forms;
-using System.ComponentModel; // Required to define serialization settings
+using System.ComponentModel;
 
 namespace Notepad;
 
@@ -10,7 +10,6 @@ public class NotepadTab : TabPage
 {
     public TextBox TextBox { get; }
 
-    // Tells .NET to ignore these properties in the form designer
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string? FilePath { get; set; }
 
@@ -18,6 +17,7 @@ public class NotepadTab : TabPage
     public bool IsModified { get; set; }
 
     public event EventHandler? ModificationStateChanged;
+    public event EventHandler? CaretPositionChanged; // Cursor changes tracker
 
     public string DisplayName => FilePath != null ? Path.GetFileName(FilePath) : "Untitled";
 
@@ -25,7 +25,6 @@ public class NotepadTab : TabPage
     {
         this.FilePath = filePath;
         this.IsModified = false;
-
         this.Text = GetHeaderName();
 
         TextBox = new TextBox
@@ -39,6 +38,11 @@ public class NotepadTab : TabPage
         };
 
         TextBox.TextChanged += TextBox_TextChanged;
+
+        // Track keyboard selection movements and mouse clicks safely
+        TextBox.KeyUp += (s, e) => CaretPositionChanged?.Invoke(this, EventArgs.Empty);
+        TextBox.MouseUp += (s, e) => CaretPositionChanged?.Invoke(this, EventArgs.Empty);
+
         this.Controls.Add(TextBox);
     }
 

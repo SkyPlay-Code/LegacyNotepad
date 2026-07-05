@@ -1,20 +1,21 @@
 using System;
-using System.Windows.Forms;
 using System.Drawing;
+using System.Windows.Forms;
 
 namespace Notepad;
 
 public class GoToForm : Form
 {
-    private Label label;
-    private TextBox lineTextBox;
-    private Button okButton;
-    private Button cancelButton;
+    private TextBox txtLineNumber;
+    private Button btnGoTo;
+    private Button btnCancel;
+    private int maxLines;
 
-    public int LineNumber { get; private set; } = -1;
+    public int LineNumber { get; private set; } = 1;
 
     public GoToForm(int maxLines)
     {
+        this.maxLines = maxLines;
         this.Text = "Go To Line";
         this.Size = new Size(300, 150);
         this.FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -22,31 +23,56 @@ public class GoToForm : Form
         this.MinimizeBox = false;
         this.StartPosition = FormStartPosition.CenterParent;
 
-        label = new Label { Text = $"Line number (1 - {maxLines}):", Location = new Point(12, 15), Size = new Size(260, 20) };
-        lineTextBox = new TextBox { Location = new Point(12, 40), Size = new Size(260, 20) };
-
-        okButton = new Button { Text = "Go To", Location = new Point(115, 80), Size = new Size(75, 25), DialogResult = DialogResult.OK };
-        cancelButton = new Button { Text = "Cancel", Location = new Point(195, 80), Size = new Size(75, 25), DialogResult = DialogResult.Cancel };
-
-        this.Controls.Add(label);
-        this.Controls.Add(lineTextBox);
-        this.Controls.Add(okButton);
-        this.Controls.Add(cancelButton);
-
-        this.AcceptButton = okButton;
-        this.CancelButton = cancelButton;
-
-        okButton.Click += (s, e) =>
+        var lblPrompt = new Label
         {
-            if (int.TryParse(lineTextBox.Text, out int line) && line >= 1 && line <= maxLines)
-            {
-                LineNumber = line;
-                this.Close();
-            }
-            else
-            {
-                MessageBox.Show("Please enter a valid line number.", "Go To Line", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
+            Text = $"Line number (1 - {maxLines}):",
+            Location = new Point(12, 15),
+            Size = new Size(260, 20)
         };
+
+        txtLineNumber = new TextBox
+        {
+            Location = new Point(12, 40),
+            Size = new Size(260, 20),
+            Text = "1"
+        };
+
+        btnGoTo = new Button
+        {
+            Text = "Go To",
+            Location = new Point(115, 75),
+            Size = new Size(75, 25),
+            DialogResult = DialogResult.OK
+        };
+        btnGoTo.Click += BtnGoTo_Click;
+
+        btnCancel = new Button
+        {
+            Text = "Cancel",
+            Location = new Point(197, 75),
+            Size = new Size(75, 25),
+            DialogResult = DialogResult.Cancel
+        };
+
+        this.Controls.Add(lblPrompt);
+        this.Controls.Add(txtLineNumber);
+        this.Controls.Add(btnGoTo);
+        this.Controls.Add(btnCancel);
+
+        this.AcceptButton = btnGoTo;
+        this.CancelButton = btnCancel;
+    }
+
+    private void BtnGoTo_Click(object? sender, EventArgs e)
+    {
+        if (int.TryParse(txtLineNumber.Text, out int line) && line >= 1 && line <= maxLines)
+        {
+            LineNumber = line;
+        }
+        else
+        {
+            MessageBox.Show("Please enter a valid line number within the range.", "Go To Line", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            this.DialogResult = DialogResult.None; // Prevent closing if invalid input
+        }
     }
 }

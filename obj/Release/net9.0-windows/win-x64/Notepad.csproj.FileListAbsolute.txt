@@ -1,0 +1,15 @@
+C:\Users\padma\Desktop\Notepad\bin\Release\net9.0-windows\win-x64\Notepad.exe
+C:\Users\padma\Desktop\Notepad\bin\Release\net9.0-windows\win-x64\Notepad.deps.json
+C:\Users\padma\Desktop\Notepad\bin\Release\net9.0-windows\win-x64\Notepad.runtimeconfig.json
+C:\Users\padma\Desktop\Notepad\bin\Release\net9.0-windows\win-x64\Notepad.dll
+C:\Users\padma\Desktop\Notepad\bin\Release\net9.0-windows\win-x64\Notepad.pdb
+C:\Users\padma\Desktop\Notepad\obj\Release\net9.0-windows\win-x64\Notepad.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\padma\Desktop\Notepad\obj\Release\net9.0-windows\win-x64\Notepad.AssemblyInfoInputs.cache
+C:\Users\padma\Desktop\Notepad\obj\Release\net9.0-windows\win-x64\Notepad.AssemblyInfo.cs
+C:\Users\padma\Desktop\Notepad\obj\Release\net9.0-windows\win-x64\Notepad.csproj.CoreCompileInputs.cache
+C:\Users\padma\Desktop\Notepad\obj\Release\net9.0-windows\win-x64\Notepad.sourcelink.json
+C:\Users\padma\Desktop\Notepad\obj\Release\net9.0-windows\win-x64\Notepad.dll
+C:\Users\padma\Desktop\Notepad\obj\Release\net9.0-windows\win-x64\refint\Notepad.dll
+C:\Users\padma\Desktop\Notepad\obj\Release\net9.0-windows\win-x64\Notepad.pdb
+C:\Users\padma\Desktop\Notepad\obj\Release\net9.0-windows\win-x64\Notepad.genruntimeconfig.cache
+C:\Users\padma\Desktop\Notepad\obj\Release\net9.0-windows\win-x64\ref\Notepad.dll

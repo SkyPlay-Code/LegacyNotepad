@@ -6,19 +6,38 @@ using System.Windows.Forms;
 
 namespace Notepad;
 
-public class Form1 : Form
+public enum ThemeMode { System, Light, Dark }
+
+public partial class Form1 : Form
 {
     private TabControl tabControl;
     private MenuStrip menuStrip;
-    private ToolStripMenuItem fileMenu;
-    private ToolStripMenuItem editMenu;
-    private ToolStripMenuItem recentMenu;
+    private StatusStrip statusStrip;
 
-    // Modeless search instance tracker
+    // Class-scoped menu fields
+    private ToolStripMenuItem fileMenu = null!;
+    private ToolStripMenuItem editMenu = null!;
+    private ToolStripMenuItem viewMenu = null!;
+    private ToolStripMenuItem zoomMenu = null!;
+    private ToolStripMenuItem recentMenu = null!;
+
+    // Class-scoped status labels
+    private ToolStripStatusLabel lblPosition = null!;
+    private ToolStripStatusLabel lblCharCount = null!;
+    private ToolStripStatusLabel lblZoom = null!;
+    private ToolStripStatusLabel lblLineEndings = null!;
+    private ToolStripStatusLabel lblEncoding = null!;
+
+    // Dialog reference tracker
     private FindReplaceForm? activeFindReplaceForm = null;
 
-    // Font Configurations (Global)
+    // Theme Configs
+    private ThemeMode currentTheme = ThemeMode.System;
+
+    // Font & Zoom Configs
     private Font globalFont = new Font("Consolas", 11, FontStyle.Regular);
+    private float currentZoomPercentage = 100f;
+    private const float DefaultFontSize = 11f;
 
     // Printing Setup
     private PrintDocument printDocument = new PrintDocument();
@@ -35,137 +54,62 @@ public class Form1 : Form
 
         menuStrip = new MenuStrip();
 
-        // --- Assemble File Menu ---
-        fileMenu = new ToolStripMenuItem("&File");
+        // Initialize menu structures
+        InitializeFileMenu();
+        InitializeEditMenu();
+        InitializeViewMenu();
 
-        var newTabItem = new ToolStripMenuItem("New &Tab", null, (s, e) => AddNewTab()) { ShortcutKeys = Keys.Control | Keys.N };
-        var newWindowItem = new ToolStripMenuItem("New &Window", null, OnNewWindowClick) { ShortcutKeys = Keys.Control | Keys.Shift | Keys.N };
-        var openItem = new ToolStripMenuItem("&Open...", null, OnOpenClick) { ShortcutKeys = Keys.Control | Keys.O };
+        // Footer initialization
+        statusStrip = new StatusStrip();
+        lblPosition = new ToolStripStatusLabel("Ln 1, Col 1");
+        lblCharCount = new ToolStripStatusLabel("0 characters");
+        var spacer = new ToolStripStatusLabel { Spring = true }; // Right-aligns all elements following it
+        lblZoom = new ToolStripStatusLabel("100%");
+        lblLineEndings = new ToolStripStatusLabel("Windows (CRLF)");
+        lblEncoding = new ToolStripStatusLabel("UTF-8");
 
-        recentMenu = new ToolStripMenuItem("&Recent");
+        statusStrip.Items.Add(lblPosition);
+        statusStrip.Items.Add(new ToolStripStatusLabel("  |  ") { Enabled = false });
+        statusStrip.Items.Add(lblCharCount);
+        statusStrip.Items.Add(spacer);
+        statusStrip.Items.Add(lblZoom);
+        statusStrip.Items.Add(new ToolStripStatusLabel("  |  ") { Enabled = false });
+        statusStrip.Items.Add(lblLineEndings);
+        statusStrip.Items.Add(new ToolStripStatusLabel("  |  ") { Enabled = false });
+        statusStrip.Items.Add(lblEncoding);
 
-        var saveItem = new ToolStripMenuItem("&Save", null, (s, e) => SaveTab(ActiveTab)) { ShortcutKeys = Keys.Control | Keys.S };
-        var saveAsItem = new ToolStripMenuItem("Save &As...", null, (s, e) => SaveTabAs(ActiveTab)) { ShortcutKeys = Keys.Control | Keys.Shift | Keys.S };
-        var saveAllItem = new ToolStripMenuItem("Save A&ll", null, OnSaveAllClick) { ShortcutKeys = Keys.Control | Keys.Alt | Keys.S };
-
-        var pageSetupItem = new ToolStripMenuItem("Page Set&up...", null, (s, e) => ShowPageSetup());
-        var printItem = new ToolStripMenuItem("&Print...", null, (s, e) => PrintActiveTab()) { ShortcutKeys = Keys.Control | Keys.P };
-
-        var closeTabItem = new ToolStripMenuItem("Close &Tab", null, (s, e) => CloseTab(tabControl.SelectedIndex)) { ShortcutKeys = Keys.Control | Keys.W };
-        var closeWindowItem = new ToolStripMenuItem("Close &Window", null, (s, e) => this.Close()) { ShortcutKeys = Keys.Control | Keys.Shift | Keys.W };
-        var exitItem = new ToolStripMenuItem("&Exit", null, (s, e) => Application.Exit());
-
-        fileMenu.DropDownItems.Add(newTabItem);
-        fileMenu.DropDownItems.Add(newWindowItem);
-        fileMenu.DropDownItems.Add(new ToolStripSeparator());
-        fileMenu.DropDownItems.Add(openItem);
-        fileMenu.DropDownItems.Add(recentMenu);
-        fileMenu.DropDownItems.Add(new ToolStripSeparator());
-        fileMenu.DropDownItems.Add(saveItem);
-        fileMenu.DropDownItems.Add(saveAsItem);
-        fileMenu.DropDownItems.Add(saveAllItem);
-        fileMenu.DropDownItems.Add(new ToolStripSeparator());
-        fileMenu.DropDownItems.Add(pageSetupItem);
-        fileMenu.DropDownItems.Add(printItem);
-        fileMenu.DropDownItems.Add(new ToolStripSeparator());
-        fileMenu.DropDownItems.Add(closeTabItem);
-        fileMenu.DropDownItems.Add(closeWindowItem);
-        fileMenu.DropDownItems.Add(exitItem);
-
-        // --- Assemble Edit Menu ---
-        editMenu = new ToolStripMenuItem("&Edit");
-
-        var undoItem = new ToolStripMenuItem("&Undo", null, (s, e) => ActiveTab?.TextBox.Undo()) { ShortcutKeys = Keys.Control | Keys.Z };
-
-        var cutItem = new ToolStripMenuItem("Cu&t", null, (s, e) => ActiveTab?.TextBox.Cut()) { ShortcutKeys = Keys.Control | Keys.X };
-        var copyItem = new ToolStripMenuItem("&Copy", null, (s, e) => ActiveTab?.TextBox.Copy()) { ShortcutKeys = Keys.Control | Keys.C };
-        var pasteItem = new ToolStripMenuItem("&Paste", null, (s, e) => ActiveTab?.TextBox.Paste()) { ShortcutKeys = Keys.Control | Keys.V };
-        var deleteItem = new ToolStripMenuItem("De&lete", null, (s, e) => { if (ActiveTab != null) ActiveTab.TextBox.SelectedText = ""; }) { ShortcutKeys = Keys.Delete };
-
-        var findItem = new ToolStripMenuItem("&Find...", null, (s, e) => ShowFindReplace(false)) { ShortcutKeys = Keys.Control | Keys.F };
-        var findNextItem = new ToolStripMenuItem("Find &Next", null, (s, e) => FindNextDirect(false)) { ShortcutKeys = Keys.F3 };
-        var findPrevItem = new ToolStripMenuItem("Find Pre&vious", null, (s, e) => FindNextDirect(true)) { ShortcutKeys = Keys.Shift | Keys.F3 };
-        var replaceItem = new ToolStripMenuItem("&Replace...", null, (s, e) => ShowFindReplace(true)) { ShortcutKeys = Keys.Control | Keys.H };
-        var goToItem = new ToolStripMenuItem("&Go To...", null, (s, e) => GoToLine()) { ShortcutKeys = Keys.Control | Keys.G };
-
-        var selectAllItem = new ToolStripMenuItem("Select &All", null, (s, e) => ActiveTab?.TextBox.SelectAll()) { ShortcutKeys = Keys.Control | Keys.A };
-        var timeDateItem = new ToolStripMenuItem("Time/&Date", null, (s, e) => InsertTimeDate()) { ShortcutKeys = Keys.F5 };
-
-        var fontItem = new ToolStripMenuItem("&Font...", null, (s, e) => ChangeGlobalFont());
-
-        editMenu.DropDownItems.Add(undoItem);
-        editMenu.DropDownItems.Add(new ToolStripSeparator());
-        editMenu.DropDownItems.Add(cutItem);
-        editMenu.DropDownItems.Add(copyItem);
-        editMenu.DropDownItems.Add(pasteItem);
-        editMenu.DropDownItems.Add(deleteItem);
-        editMenu.DropDownItems.Add(new ToolStripSeparator());
-        editMenu.DropDownItems.Add(findItem);
-        editMenu.DropDownItems.Add(findNextItem);
-        editMenu.DropDownItems.Add(findPrevItem);
-        editMenu.DropDownItems.Add(replaceItem);
-        editMenu.DropDownItems.Add(goToItem);
-        editMenu.DropDownItems.Add(new ToolStripSeparator());
-        editMenu.DropDownItems.Add(selectAllItem);
-        editMenu.DropDownItems.Add(timeDateItem);
-        editMenu.DropDownItems.Add(new ToolStripSeparator());
-        editMenu.DropDownItems.Add(fontItem);
-
-        // Bind main categories
-        menuStrip.Items.Add(fileMenu);
-        menuStrip.Items.Add(editMenu);
-        this.MainMenuStrip = menuStrip;
-        this.Controls.Add(menuStrip);
-
+        // Fixed tab constraints
         tabControl = new TabControl
         {
             Dock = DockStyle.Fill,
-            DrawMode = TabDrawMode.OwnerDrawFixed
+            DrawMode = TabDrawMode.OwnerDrawFixed,
+            ItemSize = new Size(125, 26),
+            SizeMode = TabSizeMode.Fixed
         };
         tabControl.DrawItem += TabControl_DrawItem;
         tabControl.MouseDown += TabControl_MouseDown;
 
-        // When user switches tabs, close the modeless find pop-up to avoid typing-target sync bugs
         tabControl.SelectedIndexChanged += (s, e) => {
             if (activeFindReplaceForm != null && !activeFindReplaceForm.IsDisposed)
             {
                 activeFindReplaceForm.Close();
             }
             UpdateFormTitle();
+            UpdateStatusBar();
         };
 
+        // Z-order docking layout (prevents menus overlapping tabs)
         this.Controls.Add(tabControl);
-        tabControl.BringToFront();
+        this.Controls.Add(statusStrip);
+        this.Controls.Add(menuStrip);
+        this.MainMenuStrip = menuStrip;
 
         RefreshRecentFilesMenu();
         AddNewTab();
+        ApplyTheme();
     }
 
-    // --- Tab Management & Owner Drawing ---
-
-    private NotepadTab AddNewTab(string? filePath = null, string? initialText = null)
-    {
-        var tab = new NotepadTab(filePath);
-        tab.TextBox.Font = globalFont; // Apply active global font setting
-
-        if (initialText != null)
-        {
-            tab.TextBox.Text = initialText;
-            tab.IsModified = false;
-            tab.Text = tab.GetHeaderName();
-        }
-
-        tab.ModificationStateChanged += (s, e) => {
-            UpdateFormTitle();
-            tabControl.Invalidate();
-        };
-
-        tabControl.TabPages.Add(tab);
-        tabControl.SelectedTab = tab;
-        this.ActiveControl = tab.TextBox;
-        UpdateFormTitle();
-        return tab;
-    }
+    // --- Tab Owner Drawing ---
 
     private void TabControl_DrawItem(object? sender, DrawItemEventArgs e)
     {
@@ -174,7 +118,14 @@ public class Form1 : Form
         TabPage tabPage = tabControl.TabPages[e.Index];
         Rectangle tabRect = tabControl.GetTabRect(e.Index);
 
-        Color backColor = e.State == DrawItemState.Selected ? Color.White : Color.FromArgb(240, 240, 240);
+        bool isDark = currentTheme == ThemeMode.Dark || (currentTheme == ThemeMode.System && IsSystemDarkTheme());
+
+        Color backColor = e.State == DrawItemState.Selected
+            ? (isDark ? Color.FromArgb(30, 30, 30) : Color.White)
+            : (isDark ? Color.FromArgb(40, 40, 40) : Color.FromArgb(230, 230, 230));
+        Color textColor = isDark ? Color.White : Color.Black;
+        Color xColor = isDark ? Color.LightGray : Color.Gray;
+
         using (Brush backBrush = new SolidBrush(backColor))
         {
             e.Graphics.FillRectangle(backBrush, tabRect);
@@ -184,13 +135,13 @@ public class Form1 : Form
         using (Font font = e.State == DrawItemState.Selected ? new Font(this.Font, FontStyle.Bold) : this.Font)
         {
             Rectangle textRect = new Rectangle(tabRect.X + 6, tabRect.Y + 4, tabRect.Width - 24, tabRect.Height - 8);
-            TextRenderer.DrawText(e.Graphics, tabText, font, textRect, Color.Black, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+            TextRenderer.DrawText(e.Graphics, tabText, font, textRect, textColor, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
         }
 
         Rectangle closeRect = GetCloseButtonRect(tabRect);
         using (Font xFont = new Font("Segoe UI", 8, FontStyle.Regular))
         {
-            TextRenderer.DrawText(e.Graphics, "x", xFont, closeRect, Color.Gray, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            TextRenderer.DrawText(e.Graphics, "x", xFont, closeRect, xColor, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
     }
 
@@ -276,345 +227,84 @@ public class Form1 : Form
         }
     }
 
-    // --- Edit Actions & Dialog Managers ---
+    // --- Modern Theme Engine (Registry-linked) ---
 
-    private void InsertTimeDate()
-    {
-        if (ActiveTab != null)
-        {
-            string formattedDateTime = DateTime.Now.ToString("h:mm tt M/d/yyyy");
-            ActiveTab.TextBox.SelectedText = formattedDateTime;
-        }
-    }
-
-    private void ChangeGlobalFont()
-    {
-        using (FontDialog fd = new FontDialog())
-        {
-            fd.Font = globalFont;
-            if (fd.ShowDialog() == DialogResult.OK)
-            {
-                globalFont = fd.Font;
-                // Force update across all open tabs dynamically
-                foreach (NotepadTab tab in tabControl.TabPages)
-                {
-                    tab.TextBox.Font = globalFont;
-                }
-            }
-        }
-    }
-
-    private void GoToLine()
-    {
-        if (ActiveTab == null) return;
-        string[] lines = ActiveTab.TextBox.Lines;
-
-        using (GoToForm gtf = new GoToForm(lines.Length == 0 ? 1 : lines.Length))
-        {
-            if (gtf.ShowDialog(this) == DialogResult.OK)
-            {
-                int targetLine = gtf.LineNumber;
-                if (targetLine < 1) return;
-
-                // Trace caret index position of target line bounds
-                int charIndex = 0;
-                for (int i = 0; i < targetLine - 1; i++)
-                {
-                    charIndex += lines[i].Length + Environment.NewLine.Length;
-                }
-
-                ActiveTab.TextBox.SelectionStart = charIndex;
-                ActiveTab.TextBox.SelectionLength = 0;
-                ActiveTab.TextBox.ScrollToCaret();
-                ActiveTab.TextBox.Focus();
-            }
-        }
-    }
-
-    private void ShowFindReplace(bool isReplaceMode)
-    {
-        if (ActiveTab == null) return;
-
-        // Dismiss active search overlays if existing
-        if (activeFindReplaceForm != null && !activeFindReplaceForm.IsDisposed)
-        {
-            activeFindReplaceForm.Close();
-        }
-
-        activeFindReplaceForm = new FindReplaceForm(ActiveTab.TextBox, isReplaceMode);
-        activeFindReplaceForm.FormClosed += (s, e) => activeFindReplaceForm = null;
-        activeFindReplaceForm.Show(this); // Shown Modelessly!
-    }
-
-    private void FindNextDirect(bool searchUp)
-    {
-        if (ActiveTab == null) return;
-        string findText = SearchState.LastSearchText;
-
-        // If no prior search query exists, slide open search setup modal instead
-        if (string.IsNullOrEmpty(findText))
-        {
-            ShowFindReplace(false);
-            return;
-        }
-
-        string mainText = ActiveTab.TextBox.Text;
-        StringComparison comparison = SearchState.LastMatchCase ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase;
-        int startPos = ActiveTab.TextBox.SelectionStart;
-
-        if (searchUp)
-        {
-            int searchStart = startPos - 1;
-            if (searchStart < 0) searchStart = 0;
-
-            int index = mainText.LastIndexOf(findText, searchStart, comparison);
-            if (index != -1)
-            {
-                ActiveTab.TextBox.Select(index, findText.Length);
-                ActiveTab.TextBox.ScrollToCaret();
-                ActiveTab.TextBox.Focus();
-            }
-            else
-            {
-                MessageBox.Show($"Cannot find \"{findText}\"", "Legacy Notepad", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-        }
-        else
-        {
-            int searchStart = startPos + ActiveTab.TextBox.SelectionLength;
-            if (searchStart > mainText.Length) searchStart = mainText.Length;
-
-            int index = mainText.IndexOf(findText, searchStart, comparison);
-            if (index != -1)
-            {
-                ActiveTab.TextBox.Select(index, findText.Length);
-                ActiveTab.TextBox.ScrollToCaret();
-                ActiveTab.TextBox.Focus();
-            }
-            else
-            {
-                MessageBox.Show($"Cannot find \"{findText}\"", "Legacy Notepad", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-        }
-    }
-
-    // --- Core File Handling Engine ---
-
-    private void OnNewWindowClick(object? sender, EventArgs e)
-    {
-        string? path = Environment.ProcessPath;
-        if (path != null)
-        {
-            System.Diagnostics.Process.Start(path);
-        }
-    }
-
-    private void OnOpenClick(object? sender, EventArgs e)
-    {
-        using (OpenFileDialog openFileDialog = new OpenFileDialog())
-        {
-            openFileDialog.Filter = "Text Documents (*.txt)|*.txt|All Files (*.*)|*.*";
-            if (openFileDialog.ShowDialog() == DialogResult.OK)
-            {
-                OpenFileFromPath(openFileDialog.FileName);
-            }
-        }
-    }
-
-    private void OpenFileFromPath(string path)
+    private bool IsSystemDarkTheme()
     {
         try
         {
-            string text = File.ReadAllText(path, System.Text.Encoding.UTF8);
-
-            if (ActiveTab != null && ActiveTab.FilePath == null && !ActiveTab.IsModified && ActiveTab.TextBox.Text.Length == 0)
+            using (var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
             {
-                ActiveTab.TextBox.Text = text;
-                ActiveTab.MarkSaved(path);
-            }
-            else
-            {
-                AddNewTab(path, text);
-            }
-
-            RecentFilesManager.AddRecentFile(path);
-            RefreshRecentFilesMenu();
-            UpdateFormTitle();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Could not open file:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-    }
-
-    private bool SaveTab(NotepadTab? tab)
-    {
-        if (tab == null) return false;
-
-        if (tab.FilePath == null)
-        {
-            return SaveTabAs(tab);
-        }
-        else
-        {
-            try
-            {
-                File.WriteAllText(tab.FilePath, tab.TextBox.Text, System.Text.Encoding.UTF8);
-                tab.MarkSaved(tab.FilePath);
-                RecentFilesManager.AddRecentFile(tab.FilePath);
-                RefreshRecentFilesMenu();
-                UpdateFormTitle();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Could not save file:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return false;
+                if (key != null)
+                {
+                    var value = key.GetValue("AppsUseLightTheme");
+                    if (value is int val) return val == 0;
+                }
             }
         }
-    }
-
-    private bool SaveTabAs(NotepadTab? tab)
-    {
-        if (tab == null) return false;
-
-        using (SaveFileDialog saveFileDialog = new SaveFileDialog())
-        {
-            saveFileDialog.Filter = "Text Documents (*.txt)|*.txt|All Files (*.*)|*.*";
-            saveFileDialog.DefaultExt = "txt";
-
-            if (saveFileDialog.ShowDialog() == DialogResult.OK)
-            {
-                tab.FilePath = saveFileDialog.FileName;
-                return SaveTab(tab);
-            }
-        }
+        catch { }
         return false;
     }
 
-    private void OnSaveAllClick(object? sender, EventArgs e)
+    private void ApplyTheme()
     {
+        bool isDark = currentTheme == ThemeMode.Dark || (currentTheme == ThemeMode.System && IsSystemDarkTheme());
+
+        Color formBg = isDark ? Color.FromArgb(28, 28, 28) : Color.FromArgb(243, 243, 243);
+        Color menuBg = isDark ? Color.FromArgb(32, 32, 32) : Color.FromArgb(243, 243, 243);
+        Color textBg = isDark ? Color.FromArgb(30, 30, 30) : Color.White;
+        Color textFg = isDark ? Color.White : Color.Black;
+        Color menuFg = isDark ? Color.White : Color.Black;
+
+        this.BackColor = formBg;
+
+        menuStrip.BackColor = menuBg;
+        menuStrip.ForeColor = menuFg;
+        statusStrip.BackColor = menuBg;
+        statusStrip.ForeColor = menuFg;
+
+        foreach (ToolStripItem item in statusStrip.Items)
+        {
+            item.ForeColor = menuFg;
+        }
+
+        // Apply dark renderer or native default professional renderer
+        menuStrip.Renderer = isDark ? new ToolStripProfessionalRenderer(new DarkColorTable()) : null;
+
+        tabControl.BackColor = formBg;
         foreach (NotepadTab tab in tabControl.TabPages)
         {
-            if (tab.IsModified)
-            {
-                SaveTab(tab);
-            }
+            tab.BackColor = textBg;
+            tab.TextBox.BackColor = textBg; // Styled internal text element
+            tab.TextBox.ForeColor = textFg;
         }
+
+        tabControl.Invalidate();
+        UpdateThemeMenuChecks();
     }
 
-    private bool ConfirmDiscardChanges(NotepadTab tab)
-    {
-        if (!tab.IsModified) return true;
+    // --- Footer Status Bar Engine ---
 
-        DialogResult result = MessageBox.Show(
-            $"Do you want to save changes to {tab.DisplayName}?",
-            "Legacy Notepad",
-            MessageBoxButtons.YesNoCancel,
-            MessageBoxIcon.Warning
-        );
-
-        if (result == DialogResult.Yes)
-        {
-            return SaveTab(tab);
-        }
-        else if (result == DialogResult.No)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    // --- Page Setup & Printing Systems ---
-
-    private void ShowPageSetup()
-    {
-        using (PageSetupDialog psd = new PageSetupDialog())
-        {
-            psd.Document = printDocument;
-            psd.ShowDialog();
-        }
-    }
-
-    private void PrintActiveTab()
+    private void UpdateStatusBar()
     {
         if (ActiveTab == null) return;
 
-        using (PrintDialog pd = new PrintDialog())
-        {
-            pd.Document = printDocument;
-            pd.UseEXDialog = true;
+        // Fetch selection indexes
+        int index = ActiveTab.TextBox.SelectionStart;
+        int line = ActiveTab.TextBox.GetLineFromCharIndex(index);
+        int firstCharOfLine = ActiveTab.TextBox.GetFirstCharIndexFromLine(line);
+        int col = index - firstCharOfLine;
 
-            if (pd.ShowDialog() == DialogResult.OK)
-            {
-                textToPrint = ActiveTab.TextBox.Text;
-                characterPosition = 0;
+        lblPosition.Text = $"Ln {line + 1}, Col {col + 1}";
+        lblCharCount.Text = $"{ActiveTab.TextBox.Text.Length} characters";
+        lblZoom.Text = $"{(int)currentZoomPercentage}%";
 
-                printDocument.PrintPage += OnPrintPage;
-                try
-                {
-                    printDocument.Print();
-                }
-                finally
-                {
-                    printDocument.PrintPage -= OnPrintPage;
-                }
-            }
-        }
-    }
-
-    private void OnPrintPage(object sender, PrintPageEventArgs ev)
-    {
-        if (ev.Graphics == null || ActiveTab == null) return;
-
-        Font printFont = ActiveTab.TextBox.Font;
-
-        int charsFitted;
-        int linesFitted;
-
-        ev.Graphics.MeasureString(
-            textToPrint.Substring(characterPosition),
-            printFont,
-            ev.MarginBounds.Size,
-            StringFormat.GenericTypographic,
-            out charsFitted,
-            out linesFitted
-        );
-
-        ev.Graphics.DrawString(
-            textToPrint.Substring(characterPosition, charsFitted),
-            printFont,
-            Brushes.Black,
-            ev.MarginBounds,
-            StringFormat.GenericTypographic
-        );
-
-        characterPosition += charsFitted;
-        ev.HasMorePages = characterPosition < textToPrint.Length;
-    }
-
-    // --- Window Closures Handling ---
-
-    protected override void OnFormClosing(FormClosingEventArgs e)
-    {
-        for (int i = tabControl.TabPages.Count - 1; i >= 0; i--)
-        {
-            var tab = (NotepadTab)tabControl.TabPages[i];
-            tabControl.SelectedTab = tab;
-
-            if (!ConfirmDiscardChanges(tab))
-            {
-                e.Cancel = true;
-                return;
-            }
-            else
-            {
-                tabControl.TabPages.RemoveAt(i);
-            }
-        }
-        base.OnFormClosing(e);
+        string content = ActiveTab.TextBox.Text;
+        if (content.Contains("\r\n"))
+            lblLineEndings.Text = "Windows (CRLF)";
+        else if (content.Contains("\n"))
+            lblLineEndings.Text = "Unix (LF)";
+        else
+            lblLineEndings.Text = "Macintosh (CR)";
     }
 }
