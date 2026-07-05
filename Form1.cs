@@ -129,7 +129,7 @@ public partial class Form1 : Form
 
         bool isDark = currentTheme == ThemeMode.Dark || (currentTheme == ThemeMode.System && IsSystemDarkTheme());
 
-        Color backColor = e.State == DrawItemState.Selected
+        Color backColor = (e.State & DrawItemState.Selected) == DrawItemState.Selected
             ? (isDark ? Color.FromArgb(30, 30, 30) : Color.White)
             : (isDark ? Color.FromArgb(40, 40, 40) : Color.FromArgb(230, 230, 230));
         Color textColor = isDark ? Color.White : Color.Black;
@@ -141,11 +141,34 @@ public partial class Form1 : Form
         }
 
         string tabText = tabPage.Text;
-        using (Font font = e.State == DrawItemState.Selected ? new Font(this.Font, FontStyle.Bold) : this.Font)
+
+        Font font;
+        bool mustDisposeFont = false;
+
+        // Bitwise check for the Selected state (safer and more robust on all displays)
+        if ((e.State & DrawItemState.Selected) == DrawItemState.Selected)
+        {
+            font = new Font(this.Font, FontStyle.Bold);
+            mustDisposeFont = true;
+        }
+        else
+        {
+            font = this.Font; // References the shared resource without duplicating/disposing it
+        }
+
+        try
         {
             // Set 8px left margin and reserve 28px on the right for the close button
             Rectangle textRect = new Rectangle(tabRect.X + 8, tabRect.Y + 3, tabRect.Width - 28, tabRect.Height - 6);
             TextRenderer.DrawText(e.Graphics, tabText, font, textRect, textColor, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+        }
+        finally
+        {
+            // ONLY dispose of the font if we explicitly created a new Bold instance
+            if (mustDisposeFont)
+            {
+                font.Dispose();
+            }
         }
 
         Rectangle closeRect = GetCloseButtonRect(tabRect);

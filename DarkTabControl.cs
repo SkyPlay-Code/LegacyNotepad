@@ -17,14 +17,18 @@ public class DarkTabControl : TabControl
 
     protected override void WndProc(ref Message m)
     {
+        // Let the native control calculate the display rect first
+        base.WndProc(ref m);
+
         if (m.Msg == TCM_ADJUSTRECT)
         {
-            if (m.LParam != IntPtr.Zero)
+            // Only adjust when calculating the Display Area from the Window rect (WParam == FALSE)
+            if (m.WParam == IntPtr.Zero && m.LParam != IntPtr.Zero)
             {
                 RECT rc = (RECT)Marshal.PtrToStructure(m.LParam, typeof(RECT))!;
 
-                // Expand the tab page boundaries outward to overlap and cover
-                // the default native white borders of the TabControl.
+                // Expand the calculated display area slightly so the child tab pages
+                // expand and cover the native default white borders of the TabControl.
                 rc.Left -= 4;
                 rc.Top -= 4;
                 rc.Right += 4;
@@ -33,6 +37,5 @@ public class DarkTabControl : TabControl
                 Marshal.StructureToPtr(rc, m.LParam, true);
             }
         }
-        base.WndProc(ref m);
     }
 }
